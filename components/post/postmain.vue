@@ -186,6 +186,10 @@ export default {
       default() {
         return {};
       }
+    },
+    city:{
+      type:String,
+      default:''
     }
   },
   filters:{
@@ -195,6 +199,11 @@ export default {
       }else{
         return like
       }
+    }
+  },
+  watch:{
+    city(val){
+      this.search_input = val
     }
   }
 };
