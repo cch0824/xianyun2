@@ -41,19 +41,19 @@
         type="textarea"
         :rows="2"
         placeholder="说点什么吧..."
-        v-model="textarea"
+        v-model="commData.content"
         resize="none"
       ></el-input>
       <el-row type="flex" justify="space-between">
         <!-- 文件上传 -->
         <div class="upload">
-          <!-- on-remove: 文件列表移除文件时的钩子 -->
-          <!-- on-success: 文件上传成功时的钩子 -->
           <el-upload
-            action="https://jsonplaceholder.typicode.com/posts/"
+            action="http://127.0.0.1:1337/upload"
             list-type="picture-card"
             :on-remove="handleRemove"
             :on-success="uploadAdd"
+            :file-list="fileList"
+            name="files"
           >
             <i class="el-icon-plus"></i>
           </el-upload>
@@ -63,7 +63,7 @@
         </div>
         <!-- 提交按钮 -->
         <div class="btn">
-          <el-button type="primary">提交</el-button>
+          <el-button type="primary" @click="commentsSubmit">提交</el-button>
         </div>
       </el-row>
     </div>
@@ -75,14 +75,13 @@
           <span>{{first.account.nickname}}</span>
           <i>{{first.account.updated_at|gettimer}}</i>
         </div>
-        <div class="second" v-show="!first.parent">
-          <div class="user">
-            <span>{{first.parent.account.nickname}}</span>
-            <i>{{first.parent.account.updated_at|gettimer}}</i>
-            <p class="text">{{first.parent.content}}</p>
-          </div>
+        <div class="second" v-if="first.parent">
+          <!-- 组件 -->
+          <Comment :data="first.parent">
+          </Comment>
         </div>
         <p class="text">{{first.content}}</p>
+        <nuxt-link to="#" @click.native="toreply(first)" class="reply">回复</nuxt-link>
       </div>
     </div>
     <!-- 评论为空时显示 -->
@@ -104,14 +103,15 @@
 
 <script>
 import moment from "moment";
+import Comment from "@/components/post/comment";
 export default {
-  // 组件名字,在组件内部自己调用自己
-  // name: "second",
+  components: {
+    Comment
+  },
   data() {
     return {
       data: {},
       html: "",
-      textarea: "",
       dialogVisible: false,
       dialogImg: "",
       pagenum: 1,
@@ -119,10 +119,41 @@ export default {
       total: 2,
       // 当前页面评论数据
       currCmtList: [],
-      like: 0
+      like: 0,
+      // 提交评论数据
+      commData: {
+        content: "", //文字内容
+        pics: [], //图片
+        post: this.$route.query.id, //评论id
+        follow:{}
+      },
+      fileList:[]
     };
   },
   methods: {
+    // 点击回复
+    toreply(item){
+      // console.log(item);
+      this.commData.follow=item
+    },
+    // 提交评论
+    commentsSubmit() {
+      this.$axios({
+        url: "/comments",
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.$store.state.user.userInfo.token}`
+        },
+        data: this.commData
+      }).then(res => {
+        this.$message.success(res.data.message);
+        this.commData.content = "";
+        this.commData.pics = [];
+        this.fileList=[]
+        this.commData.follow={}
+        this.getComment();
+      });
+    },
     // 点赞文章
     addLike() {
       this.$axios({
@@ -132,7 +163,6 @@ export default {
         },
         params: { id: this.$route.query.id }
       }).then(res => {
-        // console.log(res);
         this.$message.warning(res.message);
       });
     },
@@ -149,9 +179,18 @@ export default {
       });
     },
     // 移除文件时触发
-    handleRemove(file, fileList) {},
+    handleRemove(file, fileList) {
+      let arr=[file.response[0]]
+      for (let i = 0; i < this.commData.pics.length; i++) {
+       if(this.commData.pics[i]==out){
+         this.commData.pics.splice(i,1)
+       }
+      }
+    },
     // 文件上传成功时的钩子
-    uploadAdd(response, file, fileList) {},
+    uploadAdd(response, file, fileList) {
+      this.commData.pics.push(response[0]);
+    },
     // 改变每页显示条数时触发
     handleSize(pagesize) {
       this.pagesize = pagesize;
@@ -176,7 +215,6 @@ export default {
           _start: (this.pagenum - 1) * this.pagesize
         }
       }).then(res => {
-        // console.log(res, 222222);
         this.total = res.data.total;
         this.currCmtList = res.data.data;
       });
@@ -187,7 +225,6 @@ export default {
         url: "/posts",
         params: { id: this.$route.query.id }
       }).then(res => {
-        // console.log(res.data, 11111);
         this.data = res.data.data[0];
         this.html = this.data.content;
         if (this.data.like) {
@@ -229,11 +266,11 @@ export default {
     padding: 25px 0;
     border-bottom: 1px solid #ccc;
   }
-  p {
-    text-align: right;
-    color: #999;
-    margin: 20px 10px;
-  }
+  // p {
+  //   text-align: right;
+  //   color: #999;
+  //   margin: 20px 10px;
+  // }
 }
 .edit {
   margin: 50px 0 20px 0;
@@ -262,44 +299,57 @@ export default {
     margin: 20px 0 10px 0;
   }
 }
+// 评论部分
 .history {
   width: 100%;
   border: 1px solid #ccc;
   margin-top: 20px;
-  .first {
-    border-bottom: 1px dashed #ccc;
-    padding: 10px;
-    & > p {
-      padding-left: 20px;
-    }
+}
+
+.first {
+  border-bottom: 1px dashed #ccc;
+  padding: 10px;
+  & > p {
+    padding-left: 20px;
   }
-  .user {
-    img {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      vertical-align: middle;
-    }
-    span {
-      font-size: 12px;
-      color: #666;
-    }
-    i {
-      font-size: 12px;
-      color: #999;
-    }
+  span {
+    font-size: 12px;
+    color: #666;
   }
-  .text {
-    font-size: 16px;
-    color: #333;
-    text-align: left;
+  i {
+    font-size: 12px;
+    color: #999;
   }
+}
+.user {
+  img {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    vertical-align: middle;
+  }
+}
+.text {
+  font-size: 16px;
+  color: #333;
+  text-align: left;
 }
 .second {
   margin: 10px 0 0px 20px;
   padding: 8px;
   border: 1px solid #ccc;
   background-color: #f9f9f9;
+}
+
+.level {
+  float: right;
+}
+.reply {
+  float: right;
+  font-size: 12px;
+  color: #666;
+  margin-top: -7px;
+  color: #1e50a2;
 }
 .empty {
   margin: 10px 0 10px;
@@ -313,6 +363,11 @@ export default {
   margin-left: 10px;
 }
 /deep/.el-upload {
+  width: 100px;
+  height: 100px;
+  line-height: 100px;
+}
+/deep/.el-upload-list__item {
   width: 100px;
   height: 100px;
   line-height: 100px;
