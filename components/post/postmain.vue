@@ -20,7 +20,7 @@
     <el-row type="flex" justify="space-between" class="row2">
       <span class="text">推荐攻略</span>
       <span style="margin-bottom:10px">
-        <el-button type="primary" class="el-icon-edit">写游记</el-button>
+        <el-button type="primary" class="el-icon-edit" @click="jumpppage">写游记</el-button>
       </span>
     </el-row>
 
@@ -29,16 +29,16 @@
 
       <!-- 第一个文章类型 图片等于3张的时候显示-->
       <div class="post" v-if="item.images.length === 3">
-        <nuxt-link to="#">
+        <nuxt-link :to="`/post/detail?id=${item.id}`">
           <h3>{{item.title}}</h3>
         </nuxt-link>
         <!-- 文章 -->
-        <nuxt-link to="#">
+        <nuxt-link :to="`/post/detail?id=${item.id}`">
           <div class="posttext" v-html="item.summary"></div>
         </nuxt-link>
 
         <!-- 图片 -->
-        <nuxt-link to="#">
+        <nuxt-link :to="`/post/detail?id=${item.id}`">
           <el-row type="flex" justify="space-between" class="row3">
               <div v-for="(item1,index1) in item.images" :key="index1" 
               :style="`background:url('${item1}') no-repeat center;background-size: cover;`"></div>
@@ -83,16 +83,19 @@
       <div class="post1" v-else-if="item.images.length <3">
         <el-row class="row5">
           <el-col :span="8">
-            <div class="pic"
+            <nuxt-link :to="`/post/detail?id=${item.id}`">
+              <div class="pic"
             :style="`background:url('${item.images[0]}') no-repeat center;background-size: cover;`"></div>
+            </nuxt-link>
+            
           </el-col>
           <el-col :span="16">
-            <nuxt-link to="#">
+            <nuxt-link :to="`/post/detail?id=${item.id}`">
               <h3>{{item.title}}</h3>
             </nuxt-link>
 
             <!-- 文章 -->
-            <nuxt-link to="#">
+            <nuxt-link :to="`/post/detail?id=${item.id}`">
               <div class="posttext" v-html="item.summary">
               </div>
             </nuxt-link>
@@ -178,6 +181,9 @@ export default {
     recommendcity(city){
       this.search_input = city
       this.searchcity()
+    },
+    jumpppage(){
+      this.$router.push('/post/traveldiary')
     }
   },
   props: {

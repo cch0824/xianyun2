@@ -49,6 +49,7 @@ export default {
             item.images.length = 3;
           }
         });
+        console.log(res.data)
       });
     },
 
